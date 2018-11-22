@@ -9,6 +9,7 @@ import urllib
 
 
 s3 = boto3.resource('s3')
+dynamodb = boto3.resource('dynamodb')
 
 def pdf_splitter(path, key):
     m = re.search('in/(.*).pdf', key)
@@ -33,13 +34,15 @@ def pdf_splitter(path, key):
         except Exception as e:
             print(e)
             
-def get_info(path):
+def store_info(path,key):
     with open(path, 'rb') as f:
         pdf = PdfFileReader(f)
         info = pdf.getDocumentInfo()
         number_of_pages = pdf.getNumPages()
     print(info)
     print("page number %d " % (number_of_pages))
+    table = dynamodb.Table('JOBS')
+    table.put_item(Item={'ID':key,'count':str(number_of_pages)})
 
 
 def F(event, context):
@@ -66,5 +69,5 @@ def F(event, context):
             print(e)
             print('Error writing file')
             raise e
-        get_info('/tmp/temp.pdf')
+        store_info('/tmp/temp.pdf',key)
         pdf_splitter('/tmp/temp.pdf',key)
