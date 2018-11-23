@@ -1,6 +1,7 @@
 from __future__ import print_function
 import json
 import io
+import os
 import boto3
 from  PyPDF2 import PdfFileReader, PdfFileWriter
 import time
@@ -23,7 +24,7 @@ def pdf_splitter(path, key):
         output_filename = '{}_page_{}.pdf'.format(
             "/tmp/temp", r)
             
-        split_key = 'scan/{}/page{}.pdf'.format(small_key,r)
+        split_key = '{}/page{}.pdf'.format(small_key,r)
         with open(output_filename, 'wb') as out:
             pdf_writer.write(out)
         print('Created: {}'.format(output_filename))
@@ -41,8 +42,9 @@ def store_info(path,key):
         number_of_pages = pdf.getNumPages()
     print(info)
     print("page number %d " % (number_of_pages))
-    table = dynamodb.Table('JOBS')
-    table.put_item(Item={'ID':key,'count':str(number_of_pages)})
+    base = key[3:-4]
+    table = dynamodb.Table('FAN')
+    table.put_item(Item={'ID':base,'instance': number_of_pages})
 
 
 def F(event, context):
