@@ -21,10 +21,10 @@ def pdf_splitter(path, key):
         pdf_writer.addPage(pdf.getPage(page))
         r = page+1
       
-        output_filename = '{}_page_{}.pdf'.format(
+        output_filename = '{}_page_{:0>5d}.pdf'.format(
             "/tmp/temp", r)
             
-        split_key = '{}/page{}.pdf'.format(small_key,r)
+        split_key = '{}/page{:0>5d}.pdf'.format(small_key,r)
         with open(output_filename, 'wb') as out:
             pdf_writer.write(out)
         print('Created: {}'.format(output_filename))
