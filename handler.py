@@ -11,6 +11,9 @@ import urllib
 
 s3 = boto3.resource('s3')
 dynamodb = boto3.resource('dynamodb')
+bucket = os.getenv('output','smals-work-1')
+
+
 
 def pdf_splitter(path, key):
     m = re.search('in/(.*).pdf', key)
@@ -28,9 +31,10 @@ def pdf_splitter(path, key):
         with open(output_filename, 'wb') as out:
             pdf_writer.write(out)
         print('Created: {}'.format(output_filename))
-        try: 
+        try:
+          print('putting objet {} into bucket {}'.format(split_key,bucket))
             
-          s3.Object('telos-1', split_key).put(Body=open(output_filename, 'rb'))
+          s3.Object(bucket, split_key).put(Body=open(output_filename, 'rb'))
           print('Created: {}'.format(split_key))
         except Exception as e:
             print(e)
@@ -43,10 +47,11 @@ def store_info(path,key):
     print(info)
     print("page number %d " % (number_of_pages))
     base = key[3:-4]
-    table = dynamodb.Table('FAN')
-    table.put_item(Item={'ID':base,'instance': number_of_pages})
-
-
+    try:
+      table = dynamodb.Table('FAN')
+      table.put_item(Item={'ID':base,'instance': number_of_pages})
+    except Exception  as e: 
+      print ("got an exception while inserting in db {}".format(e))
 def F(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     for record in event['Records']:
@@ -61,12 +66,12 @@ def F(event, context):
                 'and your bucket is in the same region as this '
                 'function.'.format(key, bucket))
           raise e
-        response = obj.get()
-        body = response['Body']
         try:
+          response = obj.get()
+          body = response['Body']
           with io.FileIO('/tmp/temp.pdf', 'w') as file:
-             while file.write(body.read(amt=512)):
-                pass
+               while file.write(body.read(amt=512)):
+                   pass
         except Exception as e:
             print(e)
             print('Error writing file')
