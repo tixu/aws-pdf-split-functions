@@ -7,14 +7,18 @@ from  PyPDF2 import PdfFileReader, PdfFileWriter
 import time
 import re
 import urllib
+import Queue as queue
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch_all
 
+patch_all()
 
 s3 = boto3.resource('s3')
 dynamodb = boto3.resource('dynamodb')
 bucket = os.getenv('output','smals-work-1')
 
 
-
+@xray_recorder.capture('splitting')
 def pdf_splitter(path, key):
     m = re.search('in/(.*).pdf', key)
     small_key = m.group(1)
@@ -38,7 +42,7 @@ def pdf_splitter(path, key):
           print('Created: {}'.format(split_key))
         except Exception as e:
             print(e)
-            
+@xray_recorder.capture('storing info')
 def store_info(path,key):
     with open(path, 'rb') as f:
         pdf = PdfFileReader(f)
@@ -55,7 +59,7 @@ def store_info(path,key):
 def F(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     for record in event['Records']:
-        key = urllib.parse.unquote_plus(record['s3']['object']['key'])
+        key = urllib.unquote_plus(record['s3']['object']['key'])
         try:
           print("Bucket: "+ bucket)
           print("Key: "+ key)

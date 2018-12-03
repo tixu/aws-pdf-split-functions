@@ -2,7 +2,10 @@
 echo 'deleting zip file';
 rm handler.zip ; 
 echo 'zipping archive'
-zip -r handler-split.zip *;
+cd .vendor
+zip -r9 ../handler-split.zip *;
+cd ..
+zip -g handler-split.zip handler.py 
 echo 'uploading function'
 aws --profile user s3 cp handler-split.zip s3://smals-ocr-deploy;
 echo 'deploying function'
