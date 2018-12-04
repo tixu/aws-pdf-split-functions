@@ -10,6 +10,8 @@ import urllib
 import Queue as queue
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core import patch_all
+import tempfile 
+
 
 patch_all()
 
@@ -19,7 +21,7 @@ bucket = os.getenv('output','smals-work-1')
 
 
 @xray_recorder.capture('splitting')
-def pdf_splitter(path, key):
+def pdf_splitter(path, key,random):
     m = re.search('in/(.*).pdf', key)
     small_key = m.group(1)
     pdf = PdfFileReader(path)
@@ -28,8 +30,8 @@ def pdf_splitter(path, key):
         pdf_writer.addPage(pdf.getPage(page))
         r = page+1
       
-        output_filename = '{}_page_{:0>5d}.pdf'.format(
-            "/tmp/temp", r)
+        output_filename = '/tmp/{}_page_{:0>5d}.pdf'.format(
+            random, r)
             
         split_key = '{}/page{:0>5d}.pdf'.format(small_key,r)
         with open(output_filename, 'wb') as out:
@@ -73,12 +75,15 @@ def F(event, context):
         try:
           response = obj.get()
           body = response['Body']
-          with io.FileIO('/tmp/temp.pdf', 'w') as file:
+          temp_name = next(tempfile._get_candidate_names())
+          file_name =  "/tmp/{}.pdf".format(temp_name)
+          print("working with {}".format(file_name))
+          with io.FileIO(file_name, 'w') as file:
                while file.write(body.read(amt=512)):
                    pass
         except Exception as e:
             print(e)
             print('Error writing file')
             raise e
-        store_info('/tmp/temp.pdf',key)
-        pdf_splitter('/tmp/temp.pdf',key)
+        store_info(file_name,key)
+        pdf_splitter(file_name,key,temp_name)
